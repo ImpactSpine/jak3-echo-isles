@@ -1,0 +1,11 @@
+Echo Isles asset report
+=======================
+GLB file: custom_levels/echo-isles/echo-isles.glb
+GLB bytes: 130820
+Triangles authored: 832
+Vertex-colour material groups: 28
+Geometry coordinates: Y-up
+Included: island terrain, cliff skirt, stepping stones, stepped ruin, pillars, gateway lintel, overlook, rock spires, crystal landmark.
+Validation: GLB header/version/declared length checked by generator.
+Not tested: Blender import, OpenGOAL compilation, in-game loading, collision quality.
+Post-generation correction: flipped 457 downward-facing, near-horizontal top triangles and recalculated their face normals.

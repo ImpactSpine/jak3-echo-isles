@@ -1,0 +1,41 @@
+name: Repository checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Validate JSON files
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          failures = []
+          for path in Path('.').rglob('*.json'):
+              try:
+                  json.loads(path.read_text(encoding='utf-8'))
+              except Exception as exc:
+                  failures.append(f"{path}: {exc}")
+          if failures:
+              print("\n".join(failures))
+              raise SystemExit(1)
+          print("JSON files validated (JSONC is excluded).")
+          PY
+      - name: Check no game ISO or binary image is committed
+        shell: bash
+        run: |
+          if find . -type f \( -iname '*.iso' -o -iname '*.bin' \) | grep -q .; then
+            echo "Unexpected game image found in repository."
+            exit 1
+          fi
+          echo "No ISO or .bin game images found."

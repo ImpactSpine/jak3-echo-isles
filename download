@@ -1,0 +1,19 @@
+# Local toolchain output and extracted game data
+out/
+build/
+dist/
+features/
+iso/
+isos/
+extracted/
+game_data/
+*.iso
+*.bin
+*.elf
+*.dgo
+*.go
+*.o
+*.obj
+*.log
+.DS_Store
+Thumbs.db
