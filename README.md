@@ -35,10 +35,12 @@ The verified Jak 3 fixture does not show a separate `level-info.gc` edit as part
 
 ## 3. Prepare and build
 
-The candidate Jak 3 reference project documents this setup sequence:
+The installed disc has been identified as European PAL from its `SCES_524.60` identifier. Follow [`docs/PAL_SETUP.md`](docs/PAL_SETUP.md) and select the PAL decompiler mapping before extraction:
 
-```bash
+```powershell
 task set-game-jak3
+task set-decomp-pal
+task settings
 task extract
 task repl
 ```
@@ -67,6 +69,7 @@ Test in this order:
 
 - Confirm the debug entry mechanism and whether a standard continue-point entry is required in the exact Jak 3 base.
 - Confirm whether the generated level symbol is `echo-isles-vis` or another name; do not guess.
+- The reference Jak 3 importer documentation says only the first vertex-colour attribute/group is used. The current Echo Isles asset report lists 28 vertex-colour material groups; inspect and consolidate the GLB to one compatible vertex-colour layer before relying on the build.
 - Confirm the GLB imports correctly in the exact OpenGOAL compiler version.
 - Inspect face orientation and collision in-game. The asset report notes a set of downward-facing near-horizontal triangles that may need correction.
 - Only after successful compile and runtime tests should the README or release status say “playable”.
