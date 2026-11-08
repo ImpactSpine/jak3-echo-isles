@@ -1,76 +1,75 @@
 # Jak 3 OpenGOAL integration audit
 
-**Status:** candidate Jak 3 development base found; Echo Isles is not yet ported, compiled, or runtime-tested.
+**Research date:** 2026-11-08  
+**Status:** Echo Isles source package passes repository validation. Local source-tree preparation and game.gp registration are scripted. No custom-level build or in-game test has passed.
 
-## Confirmed findings (2026-11-08)
-
-### Official documentation
-
-The official OpenGOAL custom-level guide's concrete walkthrough edits Jak 1 paths such as `goal_src/jak1/game.gp` and `goal_src/jak1/engine/level/level-info.gc`. It is useful for concepts, but its snippets must not be copied into Jak 3 without checking the Jak 3 source.
-
-Source: https://opengoal.dev/docs/developing/custom_levels/your_first_level/
-
-The official introduction warns that custom-level tooling is early-stage. In particular, moving enemies/NPCs require navigation meshes, which are not generally available in the documented custom-level workflow without substantial hard-coding.
-
-Source: https://opengoal.dev/docs/developing/custom_levels/intro/
-
-### Older multi-target mod base is not our Jak 3 reference
-
-The inspected repository https://github.com/OpenGOAL-Unofficial-Mods/opengoal-multitarget-mod-base contains Jak 1 and Jak 2 source trees, but no Jak 3 source tree. It is not a suitable source of Jak 3 level registration.
-
-### Jak 3 candidate base found
+## Confirmed Jak 3 reference
 
 Repository: https://github.com/whozghiar/jak3-mod-battle-of-spargus
 
-Its source tree includes:
-- `goal_src/jak3/game.gp`;
-- `custom_assets/jak3/levels/test-zone/test-zone.jsonc`;
-- `custom_assets/jak3/levels/test-zone/testzone.gd`;
-- Jak 3 decompiler configuration;
-- a documented Jak 3 development workflow (`task set-game-jak3`, `task extract`, `task boot-game`).
+The source tree contains a Jak 3 `game.gp`, Jak 3 decompiler configuration, a custom-level test fixture, and Taskfile workflows. We use it as a development-source reference, not as proof that its own mod is a tested release.
 
-The Jak 3 `game.gp` contains a concrete custom-level build example:
+Its custom-level fixture registers a level using:
 ```lisp
 (build-custom-level "test-zone")
 (goal-src "levels/test-zone/test-zone-obs.gc" "process-focusable")
 (custom-level-cgo "TSZ.DGO" "test-zone/testzone.gd")
 ```
-The test fixture JSONC uses a unique actor base ID and names its GLB under `custom_assets/jak3/levels/test-zone/`. Its DGO descriptor references the generated level object and supporting art group.
 
-Important caveat: the candidate repository's own README says its mod has no release yet, and its Battle of Spargus documentation says in-game behavior is not verified. Its project layout and custom-level fixture are useful structural references, but do not prove that Echo Isles will build or run.
-
-## Current Echo Isles status
-
-The existing Echo Isles `.gd` and `.jsonc` files are still prototype inputs. No Jak 3 registration has yet been added to this repository. No successful compile or in-game test is claimed.
-
-## Technical mapping now confirmed
-
-The Jak 3 `game.gp` fixture registers its test level with three calls:
+The Echo Isles equivalent is:
 ```lisp
-(build-custom-level "test-zone")
-(goal-src "levels/test-zone/test-zone-obs.gc" "process-focusable")
-(custom-level-cgo "TSZ.DGO" "test-zone/testzone.gd")
+(build-custom-level "echo-isles")
+(goal-src "levels/echo-isles/echo-isles-obs.gc" "process-focusable")
+(custom-level-cgo "EIS.DGO" "echo-isles/echo-isles.gd")
 ```
-The fixture's JSONC expects a GLB path rooted at `custom_assets/jak3/levels/...`, includes a unique `base_id`, and optionally lists custom models, textures, region trees, and actors. The DGO `.gd` contains the generated level `.go` plus any extra art groups or object files required by the level.
 
-This gives us a concrete Jak 3 integration pattern. However, the candidate's `level-info.gc` file is large and the available source fetch did not return its contents, so the exact registration/continue-point hook still needs inspection in a local Jak 3 mod-base checkout before we modify it.
+The local Windows setup script copies the Echo Isles assets into the separate source checkout and inserts this block next to the test-zone fixture. It does not modify the Launcher-managed installation.
 
-## Next engineering sequence
+## Current repository checks
 
-1. Port the Echo Isles JSONC and DGO descriptor to the verified Jak 3 custom-level folder/name conventions.
-2. Inspect the exact Jak 3 `level-info.gc` continue-point registration before choosing the level's final spawn and continue-point IDs.
-3. Add the corresponding `build-custom-level`, optional level object source, and `custom-level-cgo` entries to a real Jak 3 build tree.
-4. Run validation and the OpenGOAL compiler against that Jak 3 base.
-5. Load in debug mode and verify spawn, geometry, walkable collision, walls, and falling/recovery.
-6. Mark the prototype playable only after repeatable build and runtime checks pass.
+The GitHub Actions workflow runs `tools/validate_echo_isles.py`. The latest run for commit `435da0aa461bab27e1918901b3951f12b00eb7e7` passed.
 
-## First playable acceptance criteria
+The validator checks:
+- JSONC syntax and required level naming fields;
+- GLB v2 header and embedded JSON chunk;
+- presence of mesh primitives and `COLOR_0` on every primitive;
+- absence of additional vertex-color sets;
+- the Echo Isles DGO descriptor's ordered object list.
 
-- Jak 3 starts from the development base without regressions.
-- Echo Isles DGO builds and is loaded by Jak 3.
-- Jak spawns at the intended marker.
-- Ground, steps, pillars, walls, and gateway have correct collision.
-- Traversal does not crash or softlock.
-- Build steps are repeatable from a clean checkout.
+These are source-package checks only. They do not execute the OpenGOAL custom-level generator, compile GOAL code, generate the DGO, or boot the game.
 
-Until all criteria pass, the project status remains **prototype / not yet playable**.
+## DGO descriptor
+
+The current `echo-isles.gd` follows the same one-list DGO descriptor structure as the Jak 3 test-zone fixture. It includes:
+- `echo-isles-obs.o` — generated level geometry object;
+- `echo-isles.go` — generated level GOAL object.
+
+If future actors or custom art groups are added, their required objects must be appended to this DGO list in dependency order, following the fixture's example.
+
+## Known blockers before a playable test
+
+1. **Build toolchain:** the reference source project's documented build requires a native C++ toolchain to build its own decompiler and other tools. The user's Launcher binaries are not proven drop-in replacements for the source checkout's full toolchain.
+2. **Local game data:** the user's PAL data is already extracted in the Launcher-managed installation. A safe, read-only way to expose the required data to the separate developer checkout has not yet been verified. Proprietary data must stay on the user's PC.
+3. **Level generation:** no successful invocation of the custom-level generator against Echo Isles has been recorded.
+4. **Runtime:** no DGO has been loaded; spawn, collision, falling/recovery, and reload behavior remain untested.
+5. **Gameplay flow:** normal campaign transition/continue-point registration has not been investigated. First prove a debug load before adding speculative level-info changes.
+
+## Why CI is not currently used for game builds
+
+The repository's GitHub Actions workflow intentionally validates only the public source assets. A hosted runner does not have the user's Jak 3 PAL data, and that proprietary data must not be uploaded to CI. The C++ toolchain build is also materially heavier than the current lightweight validation job. Do not present a CI source check as a game build.
+
+## Next verified engineering step
+
+Use the already prepared local checkout at `%USERPROFILE%\OpenGOAL-Jak3-EchoIsles\jak3-base` and inspect:
+- exact Taskfile build targets and generated output paths;
+- the custom-level build macro implementation;
+- the user's local Launcher PAL data layout and whether it can be referenced without modifying or copying the Launcher installation.
+
+Only then run the actual level-generation task. Record the command, exit code, output files, and complete log. Do not claim a playable build until the DGO exists and Jak 3 loads it.
+
+## Official background
+
+The official OpenGOAL custom-level documentation warns that custom-level tooling is early-stage. Moving enemies/NPCs require navigation meshes, which are not generally available in the documented custom-level workflow without substantial hard-coding.
+
+- https://opengoal.dev/docs/developing/custom_levels/your_first_level/
+- https://opengoal.dev/docs/developing/custom_levels/intro/
