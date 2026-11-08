@@ -1,51 +1,78 @@
-# Jak 3 — Echo Isles
+# Echo Isles — Jak 3 integration steps
 
-**Unofficial fan-made research and prototype project for OpenGOAL.**
+**Status:** source files are now arranged in the Jak 3 custom-level folder layout. This is not yet a compiled mod.
 
-Echo Isles is an original exploratory island/ruins concept inspired by the Jak and Daxter universe. The goal is to establish a reproducible development structure, verify which asset and custom-level workflows are actually supported for **Jak 3**, and only then create a package that can be tested in game.
+## 1. Copy the level folder into a Jak 3 mod-base checkout
 
-## Current status
+Copy the contents of this repository's:
 
-- [x] Public project repository created: https://github.com/ImpactSpine/jak3-echo-isles
-- [x] Initial original greybox scene and integration notes drafted.
-- [x] Identify a Jak 3 source project with a custom-level fixture (`whozghiar/jak3-mod-battle-of-spargus`; reference only, not yet pinned as the user's build base).
-- [x] Confirm the Jak 3 custom-level registration pattern in a real Jak 3 `game.gp` fixture.
-- [ ] Verify Echo Isles asset import, level registration, spawn, and collision in a Jak 3 build.
-- [ ] Build and test a playable in-game prototype.
-- [ ] Package a tested Windows release for OpenGOAL Launcher.
-- [ ] Publish a Mod Source manifest only after a real public archive exists.
+`custom_assets/jak3/levels/echo-isles/`
 
-**This repository is not currently an installable OpenGOAL mod.** A standalone GLB is a source asset, not by itself a level the game can load. Toolchain integration, registration, collision, spawn setup, and in-game testing remain necessary.
+into the matching path in a Jak 3 development base:
 
-## Repository layout
+`custom_assets/jak3/levels/echo-isles/`
 
-- `custom_assets/jak3/levels/echo-isles/` — Jak 3-layout JSONC, DGO descriptor, and copied greybox GLB.
-- `echo-isles.glb`, `echo-isles.jsonc`, `echo-isles.gd` — original source/prototype files at repository root.
-- `blender/` — optional asset preparation helper.
-- `docs/` — asset report, Jak 3 base audit/discovery, integration steps, compatibility, roadmap and test checklist.
-- `.github/workflows/` — basic repository checks.
+The folder should contain:
+- `echo-isles.jsonc`
+- `echo-isles.gd`
+- `echo-isles.glb`
 
-## Jak 3 integration reference
+Do not copy an ISO, extracted game data, or any copyrighted game assets into this repository.
 
-A concrete Jak 3 custom-level example is present in [`whozghiar/jak3-mod-battle-of-spargus`](https://github.com/whozghiar/jak3-mod-battle-of-spargus): its `goal_src/jak3/game.gp` registers `test-zone` with `build-custom-level`, `goal-src`, and `custom-level-cgo`. Echo Isles now follows the corresponding Jak 3 `custom_assets/jak3/levels/echo-isles/` folder layout. See [`docs/JAK3_PIPELINE_AUDIT.md`](docs/JAK3_PIPELINE_AUDIT.md) and [`docs/JAK3_INTEGRATION_STEPS.md`](docs/JAK3_INTEGRATION_STEPS.md) for the verified pattern and remaining checks.
+## 2. Register the custom level in Jak 3 game.gp
 
-This is a structural reference only. The candidate repository's own mod behavior is not confirmed as playable, and Echo Isles has not yet been compiled or loaded in-game.
+In `goal_src/jak3/game.gp`, find the existing **Example Custom Level** section. Add an Echo Isles block alongside the test-zone example:
 
-## Development principles
+```lisp
+(build-custom-level "echo-isles")
+(goal-src "levels/echo-isles/echo-isles-obs.gc" "process-focusable")
+(custom-level-cgo "EIS.DGO" "echo-isles/echo-isles.gd")
+```
 
-- Use original code and original assets wherever possible.
-- Do not commit game ISOs, extracted game data, or copyrighted assets.
-- Do not claim compatibility until there is a successful build and in-game test.
-- Keep each milestone small, testable, and documented.
+The paths and macros above are taken from the Jak 3 project structure in the candidate reference base. A copy-ready snippet is in [`patches/jak3-game.gp.snippet`](../patches/jak3-game.gp.snippet). Keep the existing test-zone example until Echo Isles builds successfully.
 
-## Planned first playable milestone
+The verified Jak 3 fixture does not show a separate `level-info.gc` edit as part of this custom-level registration block. Do not modify level-info speculatively; first establish whether the selected base requires a standard continue-point entry beyond the custom debug loader.
 
-Load an original compact island/ruins environment, place the player at a safe spawn, ensure collision and traversal work, and check that restart/respawn does not softlock the game. Visual polish comes after that path is reliable.
+## 3. Prepare and build
 
-## Reporting test results
+The candidate Jak 3 reference project documents this setup sequence:
 
-When a build becomes available, record the OpenGOAL Launcher version, Jak 3 region/version if known, installation steps, whether the game starts and the level loads, the exact error text if it fails, and screenshots where possible.
+```bash
+task set-game-jak3
+task extract
+task repl
+```
 
-## Disclaimer
+In the OpenGOAL REPL/compiler, run:
 
-This is a non-commercial fan project, not affiliated with or endorsed by Naughty Dog, Sony Interactive Entertainment, or OpenGOAL contributors. Jak and Daxter and related names belong to their respective owners. Do not upload game ISOs or extracted game files.
+```lisp
+(mi)
+```
+
+Do not treat a successful command as proof of a successful level load. Capture the complete compiler output and confirm that the Echo Isles level object and EIS.DGO were produced.
+
+## 4. Runtime test
+
+Use the Jak 3 custom-level debug workflow available in the selected mod base. The general custom-level guide documents `(bg-custom 'test-zone-vis)` for its test fixture; verify the generated symbol in the chosen Jak 3 checkout before using `(bg-custom 'echo-isles-vis)`.
+
+Test in this order:
+1. Level loads without a crash.
+2. Player spawns above a broad, safe ground surface.
+3. Ground and stepping-stone collision work.
+4. Pillars, ruin walls, and gateway collision block from the intended side.
+5. Player can traverse the island without falling through geometry.
+6. Restart/reload does not strand the player or softlock the game.
+
+## 5. Known remaining integration work
+
+- Confirm the debug entry mechanism and whether a standard continue-point entry is required in the exact Jak 3 base.
+- Confirm whether the generated level symbol is `echo-isles-vis` or another name; do not guess.
+- Confirm the GLB imports correctly in the exact OpenGOAL compiler version.
+- Inspect face orientation and collision in-game. The asset report notes a set of downward-facing near-horizontal triangles that may need correction.
+- Only after successful compile and runtime tests should the README or release status say “playable”.
+
+## Reference
+
+Candidate Jak 3 source project: https://github.com/whozghiar/jak3-mod-battle-of-spargus
+
+Its `goal_src/jak3/game.gp` contains the custom-level registration example, and its `custom_assets/jak3/levels/test-zone/` folder contains the corresponding JSONC, GLB, and DGO descriptor. Its own project documentation cautions that its mod behavior is not yet verified in-game, so Echo Isles still requires independent testing.
