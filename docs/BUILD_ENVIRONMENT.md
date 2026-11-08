@@ -68,3 +68,17 @@ Do not ask the user to edit GOAL source manually. I will prepare the Echo Isles 
 - No custom-level DGO has yet been produced by the OpenGOAL toolchain.
 - No in-game load, spawn, or collision test has passed.
 - No Launcher Mod Source manifest or release archive should be published before a tested package exists.
+
+
+## One-click Launcher diagnostics (read-only)
+
+A diagnostic pair is now included for Windows:
+
+- `Controlla-OpenGOAL.bat`
+- `tools/diagnose-launcher.ps1`
+
+Double-click `Controlla-OpenGOAL.bat`. It reads the Launcher's `%APPDATA%\\OpenGOAL-Launcher\\settings.json`, reports the configured installation directory and active version, checks whether `extractor.exe`, `goalc.exe`, and `gk.exe` exist in the Launcher's active/version binary folders, and checks several possible Jak 3 data locations. It writes:
+
+`%USERPROFILE%\\OpenGOAL-Jak3-EchoIsles\\diagnostica-launcher.txt`
+
+The diagnostic is intentionally read-only: it does not edit settings, copy binaries, extract the ISO, or change the Launcher installation. It may not find every data folder if a future Launcher version changes its layout; the report is for path discovery, not proof that the developer build can use those files.
