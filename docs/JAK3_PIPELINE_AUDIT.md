@@ -1,59 +1,64 @@
 # Jak 3 OpenGOAL integration audit
 
-**Status:** research checkpoint; no Jak 3 build has been produced yet.
+**Status:** candidate Jak 3 development base found; Echo Isles is not yet ported, compiled, or runtime-tested.
 
-## Why this audit exists
+## Confirmed findings (2026-11-08)
 
-Echo Isles currently contains a greybox GLB, a JSONC level description, a DGO descriptor, and notes based on the OpenGOAL custom-level workflow. The next step is not to copy the Jak 1 example blindly: the target game is Jak 3, and level registration and build-system paths are game-specific.
+### Official documentation
 
-## Findings confirmed on 2026-11-08
-
-### 1. The public custom-level guide is not a Jak 3 recipe
-
-The official OpenGOAL guide's worked example edits `goal_src/jak1/game.gp` and `goal_src/jak1/engine/level/level-info.gc`. Its instructions explicitly tell users to substitute the game when extracting an ISO, but the concrete level-registration walkthrough is Jak 1-specific. It cannot be treated as proof that the same snippets or indices work in Jak 3.
+The official OpenGOAL custom-level guide's concrete walkthrough edits Jak 1 paths such as `goal_src/jak1/game.gp` and `goal_src/jak1/engine/level/level-info.gc`. It is useful for concepts, but its snippets must not be copied into Jak 3 without checking the Jak 3 source.
 
 Source: https://opengoal.dev/docs/developing/custom_levels/your_first_level/
 
-### 2. The public multi-target mod-base repository inspected here does not contain a Jak 3 source tree
-
-Repository inspected: https://github.com/OpenGOAL-Unofficial-Mods/opengoal-multitarget-mod-base
-
-Its recursive tree contains `data/goal_src/jak1/...` and `data/goal_src/jak2/...`, including `game.gp` and `engine/level/level-info.gc` for those games. It does not contain `data/goal_src/jak3/...` or `custom_assets/jak3/...`.
-
-The base README describes a launcher-compatible template. Its custom-level README documents the `test-zone` workflow and a `(bg-custom 'test-zone-vis)` debug load, but does not establish Jak 3 compatibility.
-
-### 3. Custom-level tooling is explicitly early-stage
-
-The official introduction warns that custom-level tooling is in very early stages and lists missing navigation meshes as a limitation for moving enemies/NPCs without substantial hard-coding.
+The official introduction warns that custom-level tooling is early-stage. In particular, moving enemies/NPCs require navigation meshes, which are not generally available in the documented custom-level workflow without substantial hard-coding.
 
 Source: https://opengoal.dev/docs/developing/custom_levels/intro/
 
-## Consequence for Echo Isles
+### Older multi-target mod base is not our Jak 3 reference
 
-Do **not** add speculative Jak 1 snippets to the Jak 3 project and call the result installable. The current `.gd` and `.jsonc` files remain prototype inputs, not a validated Jak 3 build configuration.
+The inspected repository https://github.com/OpenGOAL-Unofficial-Mods/opengoal-multitarget-mod-base contains Jak 1 and Jak 2 source trees, but no Jak 3 source tree. It is not a suitable source of Jak 3 level registration.
 
-The next engineering dependency is a real Jak 3 mod base or a Jak 3-specific mod project whose source tree exposes:
-- the Jak 3 build target and DGO registration conventions;
-- the Jak 3 level-info / continue-point registration path;
-- the custom-level build tool invocation and output paths;
-- a known-good Jak 3 custom-level or equivalent test fixture.
+### Jak 3 candidate base found
 
-## Next implementation sequence
+Repository: https://github.com/whozghiar/jak3-mod-battle-of-spargus
 
-1. Locate and pin a maintained Jak 3-compatible mod base (or obtain the exact Jak 3 source tree used by the user's working OpenGOAL installation).
-2. Compare its Jak 3 level/DGO registration with the existing Echo Isles descriptor.
-3. Adapt the level definition and spawn/continue-point only after confirming the actual Jak 3 structures and unique IDs.
-4. Run the project's validator and OpenGOAL compiler against the Jak 3 base.
-5. Load the level in debug mode and verify spawn, visible geometry, walkable collision, walls, and falling/recovery.
-6. Only after those checks, mark the first prototype as playable.
+Its source tree includes:
+- `goal_src/jak3/game.gp`;
+- `custom_assets/jak3/levels/test-zone/test-zone.jsonc`;
+- `custom_assets/jak3/levels/test-zone/testzone.gd`;
+- Jak 3 decompiler configuration;
+- a documented Jak 3 development workflow (`task set-game-jak3`, `task extract`, `task boot-game`).
 
-## Acceptance criteria for the first playable milestone
+The Jak 3 `game.gp` contains a concrete custom-level build example:
+```lisp
+(build-custom-level "test-zone")
+(goal-src "levels/test-zone/test-zone-obs.gc" "process-focusable")
+(custom-level-cgo "TSZ.DGO" "test-zone/testzone.gd")
+```
+The test fixture JSONC uses a unique actor base ID and names its GLB under `custom_assets/jak3/levels/test-zone/`. Its DGO descriptor references the generated level object and supporting art group.
 
-- Jak 3 starts from the mod base without regressions.
-- Echo Isles DGO is built and loaded by Jak 3 (not merely parsed as text).
+Important caveat: the candidate repository's own README says its mod has no release yet, and its Battle of Spargus documentation says in-game behavior is not verified. Its project layout and custom-level fixture are useful structural references, but do not prove that Echo Isles will build or run.
+
+## Current Echo Isles status
+
+The existing Echo Isles `.gd` and `.jsonc` files are still prototype inputs. No Jak 3 registration has yet been added to this repository. No successful compile or in-game test is claimed.
+
+## Next engineering sequence
+
+1. Compare Echo Isles JSONC/DGO files against the Jak 3 test-zone fixture.
+2. Inspect the exact Jak 3 `game.gp` and level-info continue-point registration before choosing names and IDs.
+3. Port Echo Isles using unique names/IDs and only the assets it actually needs.
+4. Run validation and the OpenGOAL compiler against the Jak 3 base.
+5. Load in debug mode and verify spawn, geometry, walkable collision, walls, and falling/recovery.
+6. Mark the prototype playable only after repeatable build and runtime checks pass.
+
+## First playable acceptance criteria
+
+- Jak 3 starts from the development base without regressions.
+- Echo Isles DGO builds and is loaded by Jak 3.
 - Jak spawns at the intended marker.
-- Ground, steps, pillars, walls, and gateway have correct collision from both sides.
-- No crash or softlock when traversing the greybox.
+- Ground, steps, pillars, walls, and gateway have correct collision.
+- Traversal does not crash or softlock.
 - Build steps are repeatable from a clean checkout.
 
-Until these criteria pass, the project status remains **prototype / not yet playable**.
+Until all criteria pass, the project status remains **prototype / not yet playable**.
