@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $Root = Join-Path $env:USERPROFILE "OpenGOAL-Jak3-EchoIsles"
 $Tools = Join-Path $Root "_tools"
+$Checkout = Join-Path $Root "jak3-base"
 $Temp = Join-Path $env:TEMP ("echo-isles-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force -Path $Tools,$Temp | Out-Null
 $Log = Join-Path $Root "preparazione-echo-isles.log"
@@ -33,7 +34,7 @@ try {
   }
   $env:PATH = "$(Join-Path $gitDir 'cmd');$(Join-Path $gitDir 'mingw64\bin');$(Join-Path $gitDir 'usr\bin');$taskDir;$env:PATH"
   Say "[2/5] Preparo il progetto base Jak 3 in una cartella separata..."
-  if (!(Test-Path (Join-Path $Root ".git"))) {
+  if (!(Test-Path (Join-Path $Checkout ".git"))) {
     if ((Get-ChildItem $Root -Force | Where-Object { $_.Name -notin @("_tools","preparazione-echo-isles.log") }).Count -gt 0) {
       throw "La cartella $Root contiene già file non riconosciuti. Non li sovrascrivo."
     }
@@ -69,14 +70,14 @@ try {
     $txt = $txt.Replace($anchor,$insert.TrimEnd())
     Set-Content $gp $txt -Encoding UTF8
   }
-  Push-Location $Root
+  Push-Location $Checkout
   try {
     & (Join-Path $taskDir "task.exe") set-game-jak3
     if ($LASTEXITCODE -ne 0) { throw "Impostazione Jak 3 non riuscita." }
     & (Join-Path $taskDir "task.exe") set-decomp-pal
     if ($LASTEXITCODE -ne 0) { throw "Impostazione decompiler PAL non riuscita." }
     Say "[5/5] Preparazione completata."
-    Say "Cartella: $Root"
+    Say "Cartella progetto: $Checkout"
     Say "Log: $Log"
     Say "Non è stata eseguita alcuna estrazione o compilazione e nessun file del gioco installato dal Launcher è stato modificato."
     Say "Il prossimo passo è verificare il setup e individuare la procedura sicura per usare i dati PAL locali."
