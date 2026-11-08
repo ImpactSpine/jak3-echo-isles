@@ -19,7 +19,7 @@ jobs:
       - name: Reject game images
         shell: bash
         run: |
-          if find . -type f \\( -iname '*.iso' -o -iname '*.bin' \\) | grep -q .; then
+          if find . -type f \( -iname '*.iso' -o -iname '*.bin' \) | grep -q .; then
             echo "Unexpected game image found in repository."
             exit 1
           fi
