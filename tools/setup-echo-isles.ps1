@@ -1,85 +1,90 @@
-#requires -Version 5.1
-<#
-Echo Isles bootstrap for Windows.
-- Clones a separate Jak 3 development checkout (does not touch the user's Launcher install).
-- Downloads this project's jak4-development branch and overlays only Echo Isles source assets.
-- Registers the custom level in goal_src/jak3/game.gp, idempotently.
-- Selects Jak 3 + PAL decompiler configuration.
-- Does NOT extract copyrighted assets, compile, or launch the game automatically.
-#>
-
+# Echo Isles - preparazione automatica Windows (nessuna installazione globale)
 $ErrorActionPreference = "Stop"
-$BaseUrl = "https://github.com/whozghiar/jak3-mod-battle-of-spargus.git"
-$ModZip = "https://github.com/ImpactSpine/jak3-echo-isles/archive/refs/heads/jak4-development.zip"
-$InstallRoot = Join-Path $env:USERPROFILE "OpenGOAL-Jak3-EchoIsles"
-$TempRoot = Join-Path $env:TEMP ("echo-isles-" + [guid]::NewGuid().ToString("N"))
-$ModArchive = Join-Path $TempRoot "echo-isles.zip"
-
-function Require-Command([string]$Name) {
-  if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-    throw "Comando '$Name' non trovato. Installa Git for Windows e Task (go-task) e poi rilancia questo script."
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$Root = Join-Path $env:USERPROFILE "OpenGOAL-Jak3-EchoIsles"
+$Tools = Join-Path $Root "_tools"
+$Temp = Join-Path $env:TEMP ("echo-isles-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Force -Path $Tools,$Temp | Out-Null
+$Log = Join-Path $Root "preparazione-echo-isles.log"
+function Say($m) { Write-Host $m; Add-Content -Path $Log -Value $m }
+try {
+  New-Item -ItemType Directory -Force -Path $Root | Out-Null
+  "Echo Isles - log preparazione $(Get-Date -Format s)" | Set-Content $Log
+  Say "[1/5] Recupero strumenti portatili ufficiali..."
+  $gitDir = Join-Path $Tools "mingit"
+  $taskDir = Join-Path $Tools "task"
+  if (!(Test-Path (Join-Path $gitDir "cmd\git.exe"))) {
+    $rel = Invoke-RestMethod "https://api.github.com/repos/git-for-windows/git/releases/latest"
+    $asset = $rel.assets | Where-Object { $_.name -match '^MinGit-.*-64-bit\.zip$' } | Select-Object -First 1
+    if (!$asset) { throw "Pacchetto MinGit x64 non trovato nella release ufficiale." }
+    $zip = Join-Path $Temp "mingit.zip"
+    Invoke-WebRequest $asset.browser_download_url -OutFile $zip
+    New-Item -ItemType Directory -Force -Path $gitDir | Out-Null
+    Expand-Archive $zip $gitDir -Force
   }
-}
-
-Require-Command "git"
-Require-Command "task"
-New-Item -ItemType Directory -Force -Path $TempRoot | Out-Null
-
-if (-not (Test-Path (Join-Path $InstallRoot ".git"))) {
-  if (Test-Path $InstallRoot) {
-    throw "La cartella '$InstallRoot' esiste ma non è un checkout Git. Rinominala o scegli un'altra cartella prima di procedere."
+  if (!(Test-Path (Join-Path $taskDir "task.exe"))) {
+    $rel = Invoke-RestMethod "https://api.github.com/repos/go-task/task/releases/latest"
+    $asset = $rel.assets | Where-Object { $_.name -eq 'task_windows_amd64.zip' } | Select-Object -First 1
+    if (!$asset) { throw "Eseguibile Task x64 non trovato nella release ufficiale." }
+    $zip = Join-Path $Temp "task.zip"
+    Invoke-WebRequest $asset.browser_download_url -OutFile $zip
+    New-Item -ItemType Directory -Force -Path $taskDir | Out-Null
+    Expand-Archive $zip $taskDir -Force
   }
-  git clone $BaseUrl $InstallRoot
-  if ($LASTEXITCODE -ne 0) { throw "Clone del progetto base non riuscito." }
-} else {
-  Write-Host "Checkout già presente: non eseguo pull o reset per non sovrascrivere modifiche locali."
-}
-
-Invoke-WebRequest -Uri $ModZip -OutFile $ModArchive
-Expand-Archive -LiteralPath $ModArchive -DestinationPath $TempRoot -Force
-$Extracted = Get-ChildItem $TempRoot -Directory | Where-Object { $_.Name -like "jak3-echo-isles-*" } | Select-Object -First 1
-if (-not $Extracted) { throw "Archivio Echo Isles non estratto correttamente." }
-
-$SourceLevel = Join-Path $Extracted.FullName "custom_assets\jak3\levels\echo-isles"
-$TargetLevel = Join-Path $InstallRoot "custom_assets\jak3\levels\echo-isles"
-if (-not (Test-Path $SourceLevel)) { throw "Cartella sorgente Echo Isles non trovata nell'archivio." }
-New-Item -ItemType Directory -Force -Path (Split-Path $TargetLevel) | Out-Null
-if (Test-Path $TargetLevel) {
-  $Backup = "$TargetLevel.backup-" + (Get-Date -Format "yyyyMMdd-HHmmss")
-  Move-Item $TargetLevel $Backup
-  Write-Host "Backup della cartella Echo Isles esistente: $Backup"
-}
-Copy-Item $SourceLevel $TargetLevel -Recurse
-
-$GameProject = Join-Path $InstallRoot "goal_src\jak3\game.gp"
-if (-not (Test-Path $GameProject)) { throw "Non trovo goal_src\jak3\game.gp nel checkout." }
-$GameText = Get-Content -LiteralPath $GameProject -Raw
-if ($GameText -notmatch 'build-custom-level\s+"echo-isles"') {
-  $Anchor = '(custom-level-cgo "TSZ.DGO" "test-zone/testzone.gd")'
-  if (-not $GameText.Contains($Anchor)) { throw "Blocco test-zone atteso non trovato in game.gp: nessuna modifica automatica applicata." }
-  $Insert = @'
+  $env:PATH = "$(Join-Path $gitDir 'cmd');$(Join-Path $gitDir 'mingw64\bin');$(Join-Path $gitDir 'usr\bin');$taskDir;$env:PATH"
+  Say "[2/5] Preparo il progetto base Jak 3 in una cartella separata..."
+  if (!(Test-Path (Join-Path $Root ".git"))) {
+    if ((Get-ChildItem $Root -Force | Where-Object { $_.Name -notin @("_tools","preparazione-echo-isles.log") }).Count -gt 0) {
+      throw "La cartella $Root contiene già file non riconosciuti. Non li sovrascrivo."
+    }
+    & (Join-Path $gitDir "cmd\git.exe") clone --depth 1 "https://github.com/whozghiar/jak3-mod-battle-of-spargus.git" $Root
+    if ($LASTEXITCODE -ne 0) { throw "Download del progetto base non riuscito." }
+  } else { Say "Checkout già presente: lo mantengo senza reset." }
+  Say "[3/5] Scarico i file Echo Isles..."
+  $modZip = Join-Path $Temp "echo-isles.zip"
+  Invoke-WebRequest "https://github.com/ImpactSpine/jak3-echo-isles/archive/refs/heads/jak4-development.zip" -OutFile $modZip
+  $unpack = Join-Path $Temp "mod"
+  Expand-Archive $modZip $unpack -Force
+  $src = Join-Path $unpack "jak3-echo-isles-jak4-development\custom_assets\jak3\levels\echo-isles"
+  if (!(Test-Path $src)) { throw "I file Echo Isles non sono presenti nell'archivio scaricato." }
+  $dst = Join-Path $Root "custom_assets\jak3\levels\echo-isles"
+  New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
+  if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+  Copy-Item $src $dst -Recurse
+  Say "[4/5] Registro il livello e imposto Jak 3 PAL..."
+  $gp = Join-Path $Root "goal_src\jak3\game.gp"
+  if (!(Test-Path $gp)) { throw "Non trovo game.gp nel progetto base." }
+  $txt = Get-Content $gp -Raw
+  if ($txt -notmatch 'build-custom-level\s+"echo-isles"') {
+    $anchor = '(custom-level-cgo "TSZ.DGO" "test-zone/testzone.gd")'
+    if (!$txt.Contains($anchor)) { throw "Il blocco di riferimento test-zone è cambiato: fermo la procedura senza modificare game.gp." }
+    $insert = @'
 (custom-level-cgo "TSZ.DGO" "test-zone/testzone.gd")
 
-;; Echo Isles — first playable-area integration fixture
+;; Echo Isles
 (build-custom-level "echo-isles")
 (goal-src "levels/echo-isles/echo-isles-obs.gc" "process-focusable")
 (custom-level-cgo "EIS.DGO" "echo-isles/echo-isles.gd")
 '@
-  $GameText = $GameText.Replace($Anchor, $Insert.TrimEnd())
-  Set-Content -LiteralPath $GameProject -Value $GameText -Encoding UTF8
-}
-
-Push-Location $InstallRoot
-try {
-  task set-game-jak3
-  if ($LASTEXITCODE -ne 0) { throw "Selezione target Jak 3 fallita." }
-  task set-decomp-pal
-  if ($LASTEXITCODE -ne 0) { throw "Selezione configurazione PAL fallita." }
-  Write-Host ""
-  Write-Host "Preparazione completata. Cartella di sviluppo: $InstallRoot"
-  Write-Host "Ora esegui 'task settings' e verifica GAME=jak3 e DECOMP_CONFIG=pal."
-  Write-Host "NON eseguire ancora task extract o compilazioni: prima controlliamo il risultato e sistemiamo il GLB (vertex colors)."
-} finally {
-  Pop-Location
-  Remove-Item $TempRoot -Recurse -Force -ErrorAction SilentlyContinue
-}
+    $txt = $txt.Replace($anchor,$insert.TrimEnd())
+    Set-Content $gp $txt -Encoding UTF8
+  }
+  Push-Location $Root
+  try {
+    & (Join-Path $taskDir "task.exe") set-game-jak3
+    if ($LASTEXITCODE -ne 0) { throw "Impostazione Jak 3 non riuscita." }
+    & (Join-Path $taskDir "task.exe") set-decomp-pal
+    if ($LASTEXITCODE -ne 0) { throw "Impostazione decompiler PAL non riuscita." }
+    Say "[5/5] Preparazione completata."
+    Say "Cartella: $Root"
+    Say "Log: $Log"
+    Say "Non è stata eseguita alcuna estrazione o compilazione e nessun file del gioco installato dal Launcher è stato modificato."
+    Say "Il prossimo passo è verificare il setup e individuare la procedura sicura per usare i dati PAL locali."
+  } finally { Pop-Location }
+} catch {
+  Say "ERRORE: $($_.Exception.Message)"
+  Say "Invia questo log per correggere il problema: $Log"
+  Read-Host "Premi INVIO per chiudere"
+  exit 1
+} finally { Remove-Item $Temp -Recurse -Force -ErrorAction SilentlyContinue }
+Read-Host "Preparazione terminata. Premi INVIO per chiudere"
