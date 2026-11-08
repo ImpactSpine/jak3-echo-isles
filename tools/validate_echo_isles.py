@@ -32,7 +32,7 @@ def strip_jsonc_comments(source: str) -> str:
             out.append(ch)
             if escaped:
                 escaped = False
-            elif ch == "\\\\":
+            elif ch == "\\":
                 escaped = True
             elif ch == '"':
                 in_string = False
@@ -45,7 +45,7 @@ def strip_jsonc_comments(source: str) -> str:
             continue
         if ch == "/" and nxt == "/":
             i += 2
-            while i < len(source) and source[i] not in "\\r\\n":
+            while i < len(source) and source[i] not in "\r\n":
                 i += 1
             continue
         if ch == "/" and nxt == "*":
