@@ -43,12 +43,24 @@ Important caveat: the candidate repository's own README says its mod has no rele
 
 The existing Echo Isles `.gd` and `.jsonc` files are still prototype inputs. No Jak 3 registration has yet been added to this repository. No successful compile or in-game test is claimed.
 
+## Technical mapping now confirmed
+
+The Jak 3 `game.gp` fixture registers its test level with three calls:
+```lisp
+(build-custom-level "test-zone")
+(goal-src "levels/test-zone/test-zone-obs.gc" "process-focusable")
+(custom-level-cgo "TSZ.DGO" "test-zone/testzone.gd")
+```
+The fixture's JSONC expects a GLB path rooted at `custom_assets/jak3/levels/...`, includes a unique `base_id`, and optionally lists custom models, textures, region trees, and actors. The DGO `.gd` contains the generated level `.go` plus any extra art groups or object files required by the level.
+
+This gives us a concrete Jak 3 integration pattern. However, the candidate's `level-info.gc` file is large and the available source fetch did not return its contents, so the exact registration/continue-point hook still needs inspection in a local Jak 3 mod-base checkout before we modify it.
+
 ## Next engineering sequence
 
-1. Compare Echo Isles JSONC/DGO files against the Jak 3 test-zone fixture.
-2. Inspect the exact Jak 3 `game.gp` and level-info continue-point registration before choosing names and IDs.
-3. Port Echo Isles using unique names/IDs and only the assets it actually needs.
-4. Run validation and the OpenGOAL compiler against the Jak 3 base.
+1. Port the Echo Isles JSONC and DGO descriptor to the verified Jak 3 custom-level folder/name conventions.
+2. Inspect the exact Jak 3 `level-info.gc` continue-point registration before choosing the level's final spawn and continue-point IDs.
+3. Add the corresponding `build-custom-level`, optional level object source, and `custom-level-cgo` entries to a real Jak 3 build tree.
+4. Run validation and the OpenGOAL compiler against that Jak 3 base.
 5. Load in debug mode and verify spawn, geometry, walkable collision, walls, and falling/recovery.
 6. Mark the prototype playable only after repeatable build and runtime checks pass.
 
