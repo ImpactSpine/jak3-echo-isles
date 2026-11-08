@@ -35,10 +35,8 @@ try {
   $env:PATH = "$(Join-Path $gitDir 'cmd');$(Join-Path $gitDir 'mingw64\bin');$(Join-Path $gitDir 'usr\bin');$taskDir;$env:PATH"
   Say "[2/5] Preparo il progetto base Jak 3 in una cartella separata..."
   if (!(Test-Path (Join-Path $Checkout ".git"))) {
-    if ((Get-ChildItem $Root -Force | Where-Object { $_.Name -notin @("_tools","preparazione-echo-isles.log") }).Count -gt 0) {
-      throw "La cartella $Root contiene già file non riconosciuti. Non li sovrascrivo."
-    }
-    & (Join-Path $gitDir "cmd\git.exe") clone --depth 1 "https://github.com/whozghiar/jak3-mod-battle-of-spargus.git" $Root
+    if (Test-Path $Checkout) { throw "La cartella $Checkout esiste ma non è un checkout Git. Non la sovrascrivo." }
+    & (Join-Path $gitDir "cmd\git.exe") clone --depth 1 "https://github.com/whozghiar/jak3-mod-battle-of-spargus.git" $Checkout
     if ($LASTEXITCODE -ne 0) { throw "Download del progetto base non riuscito." }
   } else { Say "Checkout già presente: lo mantengo senza reset." }
   Say "[3/5] Scarico i file Echo Isles..."
@@ -48,12 +46,12 @@ try {
   Expand-Archive $modZip $unpack -Force
   $src = Join-Path $unpack "jak3-echo-isles-jak4-development\custom_assets\jak3\levels\echo-isles"
   if (!(Test-Path $src)) { throw "I file Echo Isles non sono presenti nell'archivio scaricato." }
-  $dst = Join-Path $Root "custom_assets\jak3\levels\echo-isles"
+  $dst = Join-Path $Checkout "custom_assets\jak3\levels\echo-isles"
   New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
   if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
   Copy-Item $src $dst -Recurse
   Say "[4/5] Registro il livello e imposto Jak 3 PAL..."
-  $gp = Join-Path $Root "goal_src\jak3\game.gp"
+  $gp = Join-Path $Checkout "goal_src\jak3\game.gp"
   if (!(Test-Path $gp)) { throw "Non trovo game.gp nel progetto base." }
   $txt = Get-Content $gp -Raw
   if ($txt -notmatch 'build-custom-level\s+"echo-isles"') {
