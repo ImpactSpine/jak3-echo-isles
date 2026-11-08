@@ -8,8 +8,9 @@ Echo Isles is an original exploratory island/ruins concept inspired by the Jak a
 
 - [x] Public project repository created: https://github.com/ImpactSpine/jak3-echo-isles
 - [x] Initial original greybox scene and integration notes drafted.
-- [x] Identify a Jak 3 source project with a custom-level fixture (candidate reference; not yet pinned as the user's build base).
-- [ ] Verify the asset/level registration and collision pipeline in Jak 3.
+- [x] Identify a Jak 3 source project with a custom-level fixture (`whozghiar/jak3-mod-battle-of-spargus`; reference only, not yet pinned as the user's build base).
+- [x] Confirm the Jak 3 custom-level registration pattern in a real Jak 3 `game.gp` fixture.
+- [ ] Verify Echo Isles asset import, level registration, spawn, and collision in a Jak 3 build.
 - [ ] Build and test a playable in-game prototype.
 - [ ] Package a tested Windows release for OpenGOAL Launcher.
 - [ ] Publish a Mod Source manifest only after a real public archive exists.
@@ -23,6 +24,12 @@ Echo Isles is an original exploratory island/ruins concept inspired by the Jak a
 - `blender/` — optional asset preparation helper.
 - `docs/` — asset report, Jak 3 base audit/discovery, integration steps, compatibility, roadmap and test checklist.
 - `.github/workflows/` — basic repository checks.
+
+## Jak 3 integration reference
+
+A concrete Jak 3 custom-level example is present in [`whozghiar/jak3-mod-battle-of-spargus`](https://github.com/whozghiar/jak3-mod-battle-of-spargus): its `goal_src/jak3/game.gp` registers `test-zone` with `build-custom-level`, `goal-src`, and `custom-level-cgo`. Echo Isles now follows the corresponding Jak 3 `custom_assets/jak3/levels/echo-isles/` folder layout. See [`docs/JAK3_PIPELINE_AUDIT.md`](docs/JAK3_PIPELINE_AUDIT.md) and [`docs/JAK3_INTEGRATION_STEPS.md`](docs/JAK3_INTEGRATION_STEPS.md) for the verified pattern and remaining checks.
+
+This is a structural reference only. The candidate repository's own mod behavior is not confirmed as playable, and Echo Isles has not yet been compiled or loaded in-game.
 
 ## Development principles
 
