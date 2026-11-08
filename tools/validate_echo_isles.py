@@ -131,7 +131,7 @@ def main() -> int:
 
     dgo = DGO.read_text(encoding="utf-8")
     # Jak 3's test-zone fixture uses a single ordered DGO object list.
-    normalized = re.sub(r";;[^\\n]*", "", dgo)
+    normalized = re.sub(r";;[^\n]*", "", dgo)
     expected_dgo = re.compile(
         r'\\(\s*"EIS\\.DGO"\s*\\(\s*"echo-isles-obs\\.o"\s*"echo-isles\\.go"\s*\\)\s*\\)',
         re.DOTALL,
