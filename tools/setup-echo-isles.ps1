@@ -14,6 +14,7 @@ try {
   Say "[1/5] Recupero strumenti portatili ufficiali..."
   $gitDir = Join-Path $Tools "mingit"
   $taskDir = Join-Path $Tools "task"
+  $pythonDir = Join-Path $Tools "python"
   if (!(Test-Path (Join-Path $gitDir "cmd\git.exe"))) {
     $rel = Invoke-RestMethod "https://api.github.com/repos/git-for-windows/git/releases/latest"
     $asset = $rel.assets | Where-Object { $_.name -match '^MinGit-.*-64-bit\.zip$' } | Select-Object -First 1
@@ -32,7 +33,15 @@ try {
     New-Item -ItemType Directory -Force -Path $taskDir | Out-Null
     Expand-Archive $zip $taskDir -Force
   }
-  $env:PATH = "$(Join-Path $gitDir 'cmd');$(Join-Path $gitDir 'mingw64\bin');$(Join-Path $gitDir 'usr\bin');$taskDir;$env:PATH"
+  if (!(Test-Path (Join-Path $pythonDir "python.exe"))) {
+    Say "Scarico Python portatile (non richiede installazione)..."
+    $zip = Join-Path $Temp "python-embed.zip"
+    Invoke-WebRequest "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip" -OutFile $zip
+    New-Item -ItemType Directory -Force -Path $pythonDir | Out-Null
+    Expand-Archive $zip $pythonDir -Force
+  }
+  $env:PATH = "$(Join-Path $gitDir 'cmd');$(Join-Path $gitDir 'mingw64\bin');$(Join-Path $gitDir 'usr\bin');$taskDir;$pythonDir;$env:PATH"
+  Say "Python portatile pronto: $(& (Join-Path $pythonDir 'python.exe') --version 2>&1)"
   Say "[2/5] Preparo il progetto base Jak 3 in una cartella separata..."
   if (!(Test-Path (Join-Path $Checkout ".git"))) {
     if (Test-Path $Checkout) { throw "La cartella $Checkout esiste ma non è un checkout Git. Non la sovrascrivo." }
