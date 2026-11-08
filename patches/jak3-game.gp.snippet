@@ -1,0 +1,5 @@
+;; Echo Isles — add to goal_src/jak3/game.gp beside the Example Custom Level block.
+;; The level builder reads custom_assets/jak3/levels/echo-isles/echo-isles.jsonc.
+(build-custom-level "echo-isles")
+(goal-src "levels/echo-isles/echo-isles-obs.gc" "process-focusable")
+(custom-level-cgo "EIS.DGO" "echo-isles/echo-isles.gd")
