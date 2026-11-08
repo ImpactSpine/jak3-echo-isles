@@ -29,7 +29,9 @@ In `goal_src/jak3/game.gp`, find the existing **Example Custom Level** section. 
 (custom-level-cgo "EIS.DGO" "echo-isles/echo-isles.gd")
 ```
 
-The paths and macros above are taken from the Jak 3 project structure in the candidate reference base. Keep the existing test-zone example until Echo Isles builds successfully.
+The paths and macros above are taken from the Jak 3 project structure in the candidate reference base. A copy-ready snippet is in [`patches/jak3-game.gp.snippet`](../patches/jak3-game.gp.snippet). Keep the existing test-zone example until Echo Isles builds successfully.
+
+The verified Jak 3 fixture does not show a separate `level-info.gc` edit as part of this custom-level registration block. Do not modify level-info speculatively; first establish whether the selected base requires a standard continue-point entry beyond the custom debug loader.
 
 ## 3. Prepare and build
 
@@ -51,7 +53,7 @@ Do not treat a successful command as proof of a successful level load. Capture t
 
 ## 4. Runtime test
 
-Use the Jak 3 custom-level debug workflow available in the selected mod base. The older general custom-level template documents `(bg-custom 'test-zone-vis)`, but verify the exact command and generated level symbol in the chosen Jak 3 checkout before using the Echo Isles equivalent.
+Use the Jak 3 custom-level debug workflow available in the selected mod base. The general custom-level guide documents `(bg-custom 'test-zone-vis)` for its test fixture; verify the generated symbol in the chosen Jak 3 checkout before using `(bg-custom 'echo-isles-vis)`.
 
 Test in this order:
 1. Level loads without a crash.
@@ -63,7 +65,7 @@ Test in this order:
 
 ## 5. Known remaining integration work
 
-- Confirm the level-info / debug entry mechanism in the exact Jak 3 base.
+- Confirm the debug entry mechanism and whether a standard continue-point entry is required in the exact Jak 3 base.
 - Confirm whether the generated level symbol is `echo-isles-vis` or another name; do not guess.
 - Confirm the GLB imports correctly in the exact OpenGOAL compiler version.
 - Inspect face orientation and collision in-game. The asset report notes a set of downward-facing near-horizontal triangles that may need correction.
