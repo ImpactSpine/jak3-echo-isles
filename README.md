@@ -8,7 +8,7 @@ Echo Isles is an original exploratory island/ruins concept inspired by the Jak a
 
 - [x] Public project repository created: https://github.com/ImpactSpine/jak3-echo-isles
 - [x] Initial original greybox scene and integration notes drafted.
-- [ ] Confirm a mod base and toolchain that explicitly work with Jak 3.
+- [x] Identify a Jak 3 source project with a custom-level fixture (candidate reference; not yet pinned as the user's build base).
 - [ ] Verify the asset/level registration and collision pipeline in Jak 3.
 - [ ] Build and test a playable in-game prototype.
 - [ ] Package a tested Windows release for OpenGOAL Launcher.
@@ -18,9 +18,10 @@ Echo Isles is an original exploratory island/ruins concept inspired by the Jak a
 
 ## Repository layout
 
-- `custom_levels/echo-isles/` — original greybox scene and early integration drafts.
+- `custom_assets/jak3/levels/echo-isles/` — Jak 3-layout JSONC, DGO descriptor, and copied greybox GLB.
+- `echo-isles.glb`, `echo-isles.jsonc`, `echo-isles.gd` — original source/prototype files at repository root.
 - `blender/` — optional asset preparation helper.
-- `docs/` — asset report, integration notes, compatibility, roadmap and test checklist.
+- `docs/` — asset report, Jak 3 base audit/discovery, integration steps, compatibility, roadmap and test checklist.
 - `.github/workflows/` — basic repository checks.
 
 ## Development principles
